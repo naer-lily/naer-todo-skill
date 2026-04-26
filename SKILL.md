@@ -73,6 +73,7 @@ python scripts/main.py create --title "Task title" [OPTIONS]
 - `--date`: Task date in `YYYY-MM-DD` format
 - `--priority`: Task priority (`NONE`, `LOW`, `MEDIUM`, `HIGH`)
 - `--category-id`: Category ID (use IDs from `categories` command)
+- `--repeat`: Repeat rule in iCalendar RRULE syntax (e.g., `RRULE:FREQ=DAILY;INTERVAL=1`)
 
 ### Task Operations
 - **Get task details**: `python scripts/main.py get <task_id>`
@@ -93,21 +94,48 @@ python scripts/main.py create --title "Task title" [OPTIONS]
 3. Assistant uses appropriate category IDs when creating tasks
 4. No category creation, deletion, or modification is possible through this skill
 
-## DAILY_TASK.md Integration for Recurring Tasks
+## Repeat Task (Recurring Task) Support
 
-The skill integrates with the `DAILY_TASK.md` file for managing recurring tasks. **This is not an automated script** - instead, the AI assistant should read this file every morning at 8:00 AM (via scheduled task) and manually create the appropriate tasks for the day.
+The skill supports creating recurring/repeat tasks using iCalendar RRULE syntax via the `--repeat` parameter. This is the standard syntax used by Dida365 (滴答清单) for recurring tasks.
 
-### Implementation Approach
-1. **Scheduled Assistant Wake-up**: Configure the AI assistant to wake up daily at 8:00 AM
-2. **File Reading**: The assistant reads `DAILY_TASK.md` to understand recurring task patterns
-3. **Manual Task Creation**: Based on current date and file content, the assistant manually creates tasks for the day using the skill's CLI
-4. **Human-like Interpretation**: The assistant interprets the file's content (which can be in any format) and makes intelligent decisions about which tasks to create
+### Creating Repeat Tasks
+```bash
+# 每天重复
+python scripts/main.py create --title "每日站会" --repeat "RRULE:FREQ=DAILY;INTERVAL=1"
 
-### Key Principles
-- **No fixed parsing scripts**: The assistant reads and interprets the file like a human would
-- **Flexible format**: `DAILY_TASK.md` can be in any text format that the assistant can understand
-- **Intelligent decision-making**: The assistant considers the current date, day of week, and other factors when deciding which tasks to create
-- **Manual execution**: All task creation is done manually by the assistant using the CLI commands
+# 每周一重复
+python scripts/main.py create --title "周报" --date 2026-04-27 --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO"
+
+# 每月1号重复
+python scripts/main.py create --title "月度总结" --date 2026-05-01 --repeat "RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1"
+
+# 每个工作日重复
+python scripts/main.py create --title "打卡" --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR"
+
+# 每2周重复
+python scripts/main.py create --title "双周回顾" --repeat "RRULE:FREQ=WEEKLY;INTERVAL=2"
+
+# 每年重复
+python scripts/main.py create --title "生日提醒" --date 2026-08-15 --repeat "RRULE:FREQ=YEARLY;INTERVAL=1"
+```
+
+### Common RRULE Patterns
+| 场景 | RRULE |
+|------|-------|
+| 每天 | `RRULE:FREQ=DAILY;INTERVAL=1` |
+| 每N天 | `RRULE:FREQ=DAILY;INTERVAL=N` |
+| 每周 | `RRULE:FREQ=WEEKLY;INTERVAL=1` |
+| 每周一/三/五 | `RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR` |
+| 工作日 | `RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR` |
+| 每月 | `RRULE:FREQ=MONTHLY;INTERVAL=1` |
+| 每月指定日 | `RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=15` |
+| 每年 | `RRULE:FREQ=YEARLY;INTERVAL=1` |
+
+### Key Notes
+- `--repeat` 参数值必须以 `RRULE:` 开头
+- 建议同时指定 `--date` 作为重复任务的起始日期
+- 重复任务在列表和详情中会显示其重复规则
+- 完成一次重复任务后，滴答清单会自动生成下一次的任务实例
 
 ## Configuration
 
@@ -132,9 +160,9 @@ pip install requests pydantic
 ```
 找到 X 个任务:
 ================================================================================
-ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 描述
+ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 重复 | 描述
 --------------------------------------------------------------------------------
-task_id | Task Title | NORMAL/COMPLETED | 无/低/中/高 | YYYY-MM-DD | Category | Description summary
+task_id | Task Title | NORMAL/COMPLETED | 无/低/中/高 | YYYY-MM-DD | Category | RRULE:... | Description summary
 ```
 
 ### Task Detail Output
@@ -146,6 +174,7 @@ task_id | Task Title | NORMAL/COMPLETED | 无/低/中/高 | YYYY-MM-DD | Categor
 完成时间: YYYY-MM-DD HH:MM:SS (only for completed tasks)
 优先级: 无/低/中/高
 日期: YYYY-MM-DD (or "未安排")
+重复: RRULE:FREQ=... (only for repeat tasks)
 分类: Category Name (or "未分组")
 ```
 
@@ -190,7 +219,8 @@ python scripts/main.py create --title "Project Review" \
   --description "Review project milestones and deliverables" \
   --date 2026-03-22 \
   --priority HIGH \
-  --category-id 69be56b7ebb75f00000003fc
+  --category-id 69be56b7ebb75f00000003fc \
+  --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=FR"
 ```
 
 ### Example 3: Complete Multiple Tasks
@@ -241,7 +271,7 @@ python scripts/main.py categories
 4. **Regular Cleanup**: Periodically complete finished tasks and delete unnecessary ones
 5. **Category Usage**: Use `categories` command to see available groupings and their IDs
 6. **Error Recovery**: If API fails, check environment variables and network connection
-7. **DAILY_TASK Integration**: For recurring tasks, read the DAILY_TASK.md file daily at 8:00 AM and manually create appropriate tasks based on current date and file content. The file can be in any format - interpret it intelligently like a human would.
+7. **Repeat Tasks**: Use `--repeat` with iCalendar RRULE syntax to create recurring tasks directly through the CLI
 8. **Positive Engagement**: Maintain constructive, encouraging tone in all responses
 
 ## File Structure

@@ -15,6 +15,7 @@ TaskService 主要是我自己实现的，其他的都是 AI 写的。
 - **智能任务筛选**：自动识别今日任务、过期任务和未安排任务
 - **简洁命令行接口**：专为AI助理优化，无需复杂参数
 - **完整CRUD操作**：创建、读取、更新、删除任务
+- **重复任务支持**：使用iCalendar RRULE语法创建周期性重复任务
 - **优先级管理**：支持无、低、中、高四级优先级
 - **分类管理**：任务可按分类组织
 - **定时提醒集成**：支持配置每日进度提醒
@@ -66,6 +67,20 @@ python scripts/main.py create \
   --category-id 69be56b7ebb75f00000003fc
 ```
 
+### 创建重复任务
+```bash
+# 每天重复
+python scripts/main.py create --title "每日站会" --repeat "RRULE:FREQ=DAILY;INTERVAL=1"
+
+# 每周一重复
+python scripts/main.py create --title "周报" --date 2026-04-27 \
+  --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO"
+
+# 工作日重复
+python scripts/main.py create --title "打卡" \
+  --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR"
+```
+
 ### 完成任务
 ```bash
 python scripts/main.py complete 69be63fde4b067bb55e38430
@@ -84,7 +99,7 @@ python scripts/main.py get 69be63fde4b067bb55e38430
 | `list-today` | 列出今日及过期未完成任务 | 无 |
 | `list-all` | 列出所有未完成任务 | 无 |
 | `list` | 兼容命令（等同list-today） | 无 |
-| `create` | 创建新任务 | `--title` (必需), `--description`, `--date`, `--priority`, `--category-id` |
+| `create` | 创建新任务 | `--title` (必需), `--description`, `--date`, `--priority`, `--category-id`, `--repeat` |
 | `get <id>` | 查看任务详情 | 任务ID |
 | `complete <id>` | 标记任务为已完成 | 任务ID |
 | `delete <id>` | 删除任务 | 任务ID |

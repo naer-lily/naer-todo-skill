@@ -68,11 +68,13 @@ def format_task_for_display(task: Task) -> str:
     
     # 分类显示
     category_str = task.category.name if task.category else "未分组"
-    
+
+    repeat_str = task.repeat_flag if task.repeat_flag else ""
+
     # 简短的描述（截断过长的描述）
     desc_short = task.description[:30] + "..." if len(task.description) > 30 else task.description
-    
-    return f"{task.id} | {task.title} | {status_str} | {priority_str} | {date_str} | {category_str} | {desc_short}"
+
+    return f"{task.id} | {task.title} | {status_str} | {priority_str} | {date_str} | {category_str} | {repeat_str} | {desc_short}"
 
 def format_task_detail(task: Task) -> str:
     """将任务对象格式化为详细显示"""
@@ -94,13 +96,15 @@ def format_task_detail(task: Task) -> str:
     if isinstance(task.status, TaskCompletedStatus):
         completed_time = f"\n完成时间: {task.status.completed_at.strftime('%Y-%m-%d %H:%M:%S')}"
     
+    repeat_str = f"\n重复: {task.repeat_flag}" if task.repeat_flag else ""
+
     return f"""任务ID: {task.id}
 标题: {task.title}
 描述: {task.description}
 状态: {status_str}{completed_time}
 优先级: {priority_str}
 日期: {date_str}
-分类: {category_str}"""
+分类: {category_str}{repeat_str}"""
 
 def list_today_tasks_command(service: TaskService, args):
     """处理list-today命令：列出当前未完成任务（今日以及过期的任务）"""
@@ -128,7 +132,7 @@ def list_today_tasks_command(service: TaskService, args):
         
         print(f"找到 {len(filtered_tasks)} 个今日或过期的未完成任务:")
         print("=" * 80)
-        print("ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 描述")
+        print("ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 重复 | 描述")
         print("-" * 80)
         
         for task in filtered_tasks:
@@ -151,7 +155,7 @@ def list_all_tasks_command(service: TaskService, args):
         
         print(f"找到 {len(tasks)} 个未完成任务:")
         print("=" * 80)
-        print("ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 描述")
+        print("ID | 标题 | 状态 | 优先级 | 日期 | 分类 | 重复 | 描述")
         print("-" * 80)
         
         for task in tasks:
@@ -190,7 +194,10 @@ def create_task_command(service: TaskService, args):
                 task.category = category
             else:
                 print(f"警告: 分类ID '{args.category_id}' 不存在，任务将不设置分类", file=sys.stderr)
-        
+
+        if args.repeat:
+            task.repeat_flag = args.repeat
+
         # 创建任务
         created_task = service.create_task(task)
         print(f"创建成功: {created_task.id}")
@@ -198,6 +205,8 @@ def create_task_command(service: TaskService, args):
         if created_task.schedule_date:
             print(f"日期: {created_task.schedule_date}")
         print(f"优先级: {created_task.priority}")
+        if created_task.repeat_flag:
+            print(f"重复: {created_task.repeat_flag}")
         
     except Exception as e:
         print(f"错误: 创建任务失败 - {e}", file=sys.stderr)
@@ -309,6 +318,7 @@ def main():
     create_parser.add_argument("--priority", choices=["NONE", "LOW", "MEDIUM", "HIGH"],
                              help="任务优先级")
     create_parser.add_argument("--category-id", help="分类ID")
+    create_parser.add_argument("--repeat", help="重复规则 (iCalendar RRULE语法, 如 'RRULE:FREQ=DAILY;INTERVAL=1')")
     
     # get命令
     get_parser = subparsers.add_parser("get", help="获取任务详情")

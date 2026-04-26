@@ -96,6 +96,7 @@ class Task(BaseModel):
     title: str = Field(description='任务标题')
     description: str = Field(default='', description='任务描述，支持markdown格式，可省略')
     schedule_date: date | None = Field(default=None, description='任务所属日期，为 None 表示未安排日期')
+    repeat_flag: str | None = Field(default=None, description='重复规则，使用iCalendar RRULE语法，如 "RRULE:FREQ=DAILY;INTERVAL=1"')
     priority: TaskPriority = Field(default='NONE', description='任务优先级')
     
     status: TaskStatus = Field(default_factory=TaskNormalStatus, description='任务状态')
@@ -341,6 +342,8 @@ class TaskService:
             except (ValueError, TypeError):
                 schedule_date = None
         
+        repeat_flag = dida_task.get('repeatFlag')
+
         category = next((i for i in self.list_categories() if i.id == column_id), None) if (column_id := dida_task.get('columnId')) else None
         
         # 构建 Task 对象
@@ -349,6 +352,7 @@ class TaskService:
             title=dida_task.get('title', ''),
             description=dida_task.get('content', '') or dida_task.get('desc', ''),
             schedule_date=schedule_date,
+            repeat_flag=repeat_flag,
             priority=priority, # type: ignore
             status=status,
             category=category
@@ -394,7 +398,10 @@ class TaskService:
             # 将日期转换为滴答清单的日期时间格式
             dida_task['startDate'] = f"{used_date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')}"
             dida_task['dueDate'] = f"{used_date.strftime('%Y-%m-%dT%H:%M:%S.%f%z')}"
-        
+
+        if task.repeat_flag:
+            dida_task['repeatFlag'] = task.repeat_flag
+
         # 处理分类
         dida_task['projectId'] = self._project_id
         
