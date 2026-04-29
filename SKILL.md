@@ -7,6 +7,10 @@ description: Manage todo tasks through a CLI interface. Use when the user needs 
 
 A Python CLI tool for managing todo tasks, designed for AI assistants to integrate task management capabilities. The tool provides a consistent interface while using a backend service for task storage and synchronization.
 
+> **绝对规则：每次都必须重新查询**
+> 用户有多个渠道（滴答清单 App、网页端、手机等）可以随时变更待办清单，因此 AI 助理**每次涉及待办操作的会话轮次，都必须先执行一次查询命令**（`list-today` 或 `list-all`）获取最新数据。
+> **严禁**沿用之前会话中查询到的缓存结果——哪怕是同一轮对话中的前一个消息也可能是过时的。在每次对话轮次中，只要当前消息需要用到待办清单数据，就先查询再操作。
+
 ## Quick Start
 
 ### Prerequisites
